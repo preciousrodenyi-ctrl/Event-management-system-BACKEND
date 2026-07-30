@@ -1,27 +1,102 @@
-from extensions import db, bcrypt
+from flask import Blueprint, request, session, jsonify
+from extensions import db
+from models.user import User
 
-class User(db.Model):
-    __tablename__ = "users"
+auth_bp = Blueprint("auth", __name__)
 
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
 
-    events = db.relationship("Event", backref="user", lazy=True)
+@auth_bp.route("/signup", methods=["POST"])
+def signup():
+    data = request.get_json()
 
-    @property
-    def password(self):
-        raise AttributeError("Password cannot be read.")
+    username = data.get("username")
+    password = data.get("password")
 
-    @password.setter
-    def password(self, password):
-        self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+    if not username or not password:
+        return jsonify({
+            "error": "Username and password are required"
+        }), 400
 
-    def authenticate(self, password):
-        return bcrypt.check_password_hash(self.password_hash, password)
+    existing_user = User.query.filter_by(username=username).first()
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "username": self.username,
-        }
+    if existing_user:
+        return jsonify({
+            "error": "Username already exists"
+        }), 400
+
+    user = User(username=username)
+
+    # This uses your password setter and hashes the password
+    user.password = password
+
+    db.session.add(user)
+    db.session.commit()
+
+    session["user_id"] = user.id
+
+    return jsonify(user.to_dict()), 201
+
+
+
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({
+            "error": "Username and password are required"
+        }), 400
+
+
+    user = User.query.filter_by(username=username).first()
+
+
+    if user and user.authenticate(password):
+        session["user_id"] = user.id
+
+        return jsonify({
+            "message": "Login successful",
+            "user": user.to_dict()
+        }), 200
+
+
+    return jsonify({
+        "error": "Invalid username or password"
+    }), 401
+
+
+
+@auth_bp.route("/check_session", methods=["GET"])
+def check_session():
+
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({
+            "error": "Unauthorized"
+        }), 401
+
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+
+    return jsonify(user.to_dict()), 200
+
+
+
+@auth_bp.route("/logout", methods=["DELETE"])
+def logout():
+
+    session.clear()
+
+    return jsonify({
+        "message": "Logged out successfully"
+    }), 200
