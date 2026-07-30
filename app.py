@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from datetime import timedelta
 
 from config import Config
 from extensions import db, bcrypt, migrate
@@ -12,63 +13,41 @@ def create_app():
 
     app = Flask(__name__)
 
-    # Configuration
     app.config.from_object(Config)
 
-    # Secret key for sessions
     app.secret_key = "eventhub-secret-key"
 
-    # Session configuration for Render
+    # Session settings
+    app.config["SESSION_COOKIE_NAME"] = "eventhub_session"
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
     app.config["SESSION_COOKIE_SAMESITE"] = "None"
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
 
-    # Prevent session issues
-    app.config["SESSION_PERMANENT"] = False
 
-
-    # Initialize extensions
+    # Extensions
     db.init_app(app)
     bcrypt.init_app(app)
     migrate.init_app(app, db)
 
 
-    # CORS configuration
+    # CORS
     CORS(
         app,
         supports_credentials=True,
         origins=[
-            # Local frontend
+            "https://event-management-system-frontend-1.onrender.com",
             "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:5175",
-            "http://localhost:5176",
-
-            # Local IP
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174",
-            "http://127.0.0.1:5175",
-            "http://127.0.0.1:5176",
-
-            # Render frontend
-            "https://event-management-system-frontend-1.onrender.com"
+            "http://localhost:5174"
         ]
     )
 
 
-    # Register API routes
-    app.register_blueprint(
-        auth_bp,
-        url_prefix="/api"
-    )
-
-    app.register_blueprint(
-        events_bp,
-        url_prefix="/api"
-    )
+    # Routes
+    app.register_blueprint(auth_bp, url_prefix="/api")
+    app.register_blueprint(events_bp, url_prefix="/api")
 
 
-    # Test route
     @app.route("/")
     def home():
         return jsonify({
@@ -78,7 +57,6 @@ def create_app():
 
 
     return app
-
 
 
 app = create_app()
