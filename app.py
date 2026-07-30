@@ -17,19 +17,19 @@ def create_app():
     app.secret_key = "eventhub-secret-key"
 
 
-    # CORS FIX
+    # CORS FIX - ALLOW RENDER FRONTEND
     CORS(
         app,
-        resources={
-            r"/api/*": {
-                "origins": [
-                    "https://event-management-system-frontend-1.onrender.com",
-                    "http://localhost:5173",
-                    "http://localhost:5174"
-                ]
-            }
-        },
-        supports_credentials=True
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        origins=[
+            "https://event-management-system-frontend-1.onrender.com",
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176"
+        ]
     )
 
 
@@ -40,20 +40,12 @@ def create_app():
 
 
     # Routes
-    app.register_blueprint(
-        auth_bp,
-        url_prefix="/api"
-    )
-
-    app.register_blueprint(
-        events_bp,
-        url_prefix="/api"
-    )
+    app.register_blueprint(auth_bp, url_prefix="/api")
+    app.register_blueprint(events_bp, url_prefix="/api")
 
 
     @app.route("/")
     def home():
-
         return jsonify({
             "message": "Welcome to EventHub API",
             "status": "running"
@@ -69,7 +61,6 @@ app = create_app()
 
 
 if __name__ == "__main__":
-
     app.run(
         host="0.0.0.0",
         port=5555,
