@@ -19,20 +19,19 @@ def create_app():
 
     # Session settings for Render frontend + backend
     app.config["SESSION_COOKIE_SAMESITE"] = "None"
-    app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
 
     # Initialize extensions
     db.init_app(app)
     bcrypt.init_app(app)
     migrate.init_app(app, db)
 
-    # CORS settings
+    # Allow frontend to communicate with backend
     CORS(
         app,
         supports_credentials=True,
         origins=[
-            # Local development
             "http://localhost:5173",
             "http://localhost:5174",
             "http://localhost:5175",
@@ -43,17 +42,15 @@ def create_app():
             "http://127.0.0.1:5175",
             "http://127.0.0.1:5176",
 
-            # Render frontend
             "https://event-management-system-frontend-1.onrender.com"
         ]
     )
 
-    # Register routes
+    # Routes
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(events_bp, url_prefix="/api")
 
 
-    # Home route
     @app.route("/")
     def home():
         return jsonify({
