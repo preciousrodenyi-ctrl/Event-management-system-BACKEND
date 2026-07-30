@@ -1,4 +1,4 @@
-from flask import Blueprint, request, session, jsonify
+from flask import Blueprint, request, jsonify
 from extensions import db
 from models.user import User
 
@@ -12,7 +12,6 @@ def signup():
 
     username = data.get("username")
     password = data.get("password")
-
 
     if not username or not password:
         return jsonify({
@@ -31,11 +30,8 @@ def signup():
         }), 400
 
 
-    user = User(
-        username=username
-    )
+    user = User(username=username)
 
-    # Your User model hashes the password here
     user.password = password
 
 
@@ -43,12 +39,7 @@ def signup():
     db.session.commit()
 
 
-    session.permanent = True
-    session["user_id"] = user.id
-
-
     return jsonify(user.to_dict()), 201
-
 
 
 
@@ -61,12 +52,6 @@ def login():
     password = data.get("password")
 
 
-    if not username or not password:
-        return jsonify({
-            "error": "Username and password are required"
-        }), 400
-
-
     user = User.query.filter_by(
         username=username
     ).first()
@@ -74,15 +59,10 @@ def login():
 
     if user and user.authenticate(password):
 
-        session.permanent = True
-        session["user_id"] = user.id
-
-
         return jsonify({
             "message": "Login successful",
             "user": user.to_dict()
         }), 200
-
 
 
     return jsonify({
@@ -91,39 +71,18 @@ def login():
 
 
 
-
 @auth_bp.route("/check_session", methods=["GET"])
 def check_session():
 
-    user_id = session.get("user_id")
-
-
-    if not user_id:
-        return jsonify({
-            "error": "Unauthorized"
-        }), 401
-
-
-    user = User.query.get(user_id)
-
-
-    if not user:
-        return jsonify({
-            "error": "User not found"
-        }), 404
-
-
-    return jsonify(user.to_dict()), 200
-
+    return jsonify({
+        "authenticated": True
+    }), 200
 
 
 
 @auth_bp.route("/logout", methods=["DELETE"])
 def logout():
 
-    session.clear()
-
-
     return jsonify({
-        "message": "Logged out successfully"
+        "message": "Logged out"
     }), 200
