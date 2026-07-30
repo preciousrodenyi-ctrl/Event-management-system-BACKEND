@@ -5,6 +5,7 @@ from models.user import User
 auth_bp = Blueprint("auth", __name__)
 
 
+# SIGNUP
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
 
@@ -12,6 +13,7 @@ def signup():
 
     username = data.get("username")
     password = data.get("password")
+
 
     if not username or not password:
         return jsonify({
@@ -30,8 +32,12 @@ def signup():
         }), 400
 
 
-    user = User(username=username)
+    user = User(
+        username=username
+    )
 
+
+    # Password will be hashed by your User model
     user.password = password
 
 
@@ -39,10 +45,15 @@ def signup():
     db.session.commit()
 
 
-    return jsonify(user.to_dict()), 201
+    return jsonify({
+        "message": "Account created successfully",
+        "user": user.to_dict()
+    }), 201
 
 
 
+
+# LOGIN
 @auth_bp.route("/login", methods=["POST"])
 def login():
 
@@ -71,6 +82,8 @@ def login():
 
 
 
+
+# CHECK LOGIN
 @auth_bp.route("/check_session", methods=["GET"])
 def check_session():
 
@@ -80,9 +93,11 @@ def check_session():
 
 
 
+
+# LOGOUT
 @auth_bp.route("/logout", methods=["DELETE"])
 def logout():
 
     return jsonify({
-        "message": "Logged out"
+        "message": "Logged out successfully"
     }), 200
