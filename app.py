@@ -17,12 +17,23 @@ def create_app():
     app.secret_key = "eventhub-secret-key"
 
 
+    # CORS - MUST COME BEFORE ROUTES
     CORS(
         app,
         resources={
             r"/api/*": {
                 "origins": [
                     "https://event-management-system-frontend-1.onrender.com"
+                ],
+                "methods": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "OPTIONS"
+                ],
+                "allow_headers": [
+                    "Content-Type"
                 ]
             }
         }
@@ -34,5 +45,37 @@ def create_app():
     migrate.init_app(app, db)
 
 
-    app.register_blueprint(auth_bp, url_prefix="/api")
-    app.register_blueprint(events_bp, url_prefix="/api")
+    app.register_blueprint(
+        auth_bp,
+        url_prefix="/api"
+    )
+
+    app.register_blueprint(
+        events_bp,
+        url_prefix="/api"
+    )
+
+
+    @app.route("/")
+    def home():
+
+        return jsonify({
+            "message": "Welcome to EventHub API",
+            "status": "running"
+        })
+
+
+    return app
+
+
+
+app = create_app()
+
+
+
+if __name__ == "__main__":
+
+    app.run(
+        host="0.0.0.0",
+        port=5555
+    )
