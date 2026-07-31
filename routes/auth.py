@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from extensions import db
 from models.user import User
 
@@ -14,43 +14,32 @@ def signup():
     username = data.get("username")
     password = data.get("password")
 
-
     if not username or not password:
         return jsonify({
             "error": "Username and password are required"
         }), 400
 
-
-    existing_user = User.query.filter_by(
-        username=username
-    ).first()
-
+    existing_user = User.query.filter_by(username=username).first()
 
     if existing_user:
         return jsonify({
             "error": "Username already exists"
         }), 400
 
+    user = User(username=username)
 
-    user = User(
-        username=username
-    )
-
-
-    # Password will be hashed by your User model
     user.password = password
-
 
     db.session.add(user)
     db.session.commit()
 
+    # Save user session
+    session["user_id"] = user.id
 
     return jsonify({
         "message": "Account created successfully",
         "user": user.to_dict()
     }), 201
-
-
 
 
 # LOGIN
@@ -62,41 +51,49 @@ def login():
     username = data.get("username")
     password = data.get("password")
 
-
-    user = User.query.filter_by(
-        username=username
-    ).first()
-
+    user = User.query.filter_by(username=username).first()
 
     if user and user.authenticate(password):
+
+        # Save session
+        session["user_id"] = user.id
 
         return jsonify({
             "message": "Login successful",
             "user": user.to_dict()
         }), 200
 
-
     return jsonify({
         "error": "Invalid username or password"
     }), 401
 
 
-
-
-# CHECK LOGIN
+# CHECK SESSION
 @auth_bp.route("/check_session", methods=["GET"])
 def check_session():
 
-    return jsonify({
-        "authenticated": True
-    }), 200
+    user_id = session.get("user_id")
 
+    if not user_id:
+        return jsonify({
+            "error": "Unauthorized"
+        }), 401
 
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({
+            "error": "Unauthorized"
+        }), 401
+
+    return jsonify(user.to_dict()), 200
 
 
 # LOGOUT
 @auth_bp.route("/logout", methods=["DELETE"])
 def logout():
+
+    session.pop("user_id", None)
 
     return jsonify({
         "message": "Logged out successfully"
