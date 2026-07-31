@@ -24,6 +24,5 @@ class Event(db.Model):
             "location": self.location,
             "date": self.date,
             "category": self.category,
-            "image": self.image,
             "user_id": self.user_id
         }
