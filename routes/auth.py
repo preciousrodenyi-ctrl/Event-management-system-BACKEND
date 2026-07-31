@@ -8,7 +8,6 @@ auth_bp = Blueprint("auth", __name__)
 # SIGNUP
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
-
     data = request.get_json()
 
     username = data.get("username")
@@ -19,7 +18,9 @@ def signup():
             "error": "Username and password are required"
         }), 400
 
-    existing_user = User.query.filter_by(username=username).first()
+    existing_user = User.query.filter_by(
+        username=username
+    ).first()
 
     if existing_user:
         return jsonify({
@@ -27,13 +28,12 @@ def signup():
         }), 400
 
     user = User(username=username)
-
     user.password = password
 
     db.session.add(user)
     db.session.commit()
 
-    # Save user session
+    # LOGIN THE USER
     session["user_id"] = user.id
 
     return jsonify({
@@ -45,17 +45,18 @@ def signup():
 # LOGIN
 @auth_bp.route("/login", methods=["POST"])
 def login():
-
     data = request.get_json()
 
     username = data.get("username")
     password = data.get("password")
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(
+        username=username
+    ).first()
 
     if user and user.authenticate(password):
 
-        # Save session
+        # SAVE USER SESSION
         session["user_id"] = user.id
 
         return jsonify({
@@ -69,7 +70,7 @@ def login():
 
 
 # CHECK SESSION
-@auth_bp.route("/check_session", methods=["GET"])
+@auth_bp.route("/check_session")
 def check_session():
 
     user_id = session.get("user_id")
@@ -81,12 +82,7 @@ def check_session():
 
     user = User.query.get(user_id)
 
-    if not user:
-        return jsonify({
-            "error": "Unauthorized"
-        }), 401
-
-    return jsonify(user.to_dict()), 200
+    return jsonify(user.to_dict())
 
 
 # LOGOUT
@@ -96,5 +92,5 @@ def logout():
     session.pop("user_id", None)
 
     return jsonify({
-        "message": "Logged out successfully"
-    }), 200
+        "message": "Logged out"
+    })
